@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ManzXSub — Setup</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .stage{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .setup-card{ width:360px; max-width:92vw; padding:34px 26px; text-align:center; }
+  .setup-card .wordmark{ font-size:16px; margin-bottom:6px; }
+  .setup-card p{ color:var(--ink-dim); font-size:13px; margin:0 0 24px; line-height:1.5; }
+  .field{ text-align:left; margin-bottom:18px; }
+  .field label{ display:block; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-dim); margin-bottom:8px; }
+  .at{ position:relative; }
+  .at span{ position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--ink-dim); }
+  .at input{ padding-left:26px; }
+  .setup-card .btn{ width:100%; margin-top:4px; }
+  .note{ margin-top:18px; font-size:11.5px; color:var(--ink-dim); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="card setup-card">
+    <div class="wordmark">MANZ<span class="x">✕</span>SUB</div>
+    <p>Masukin username TikTok kamu buat bikin dashboard sendiri. Ini bukan login resmi TikTok — cuma dipakai sebagai kunci akun kamu.</p>
+    <div class="field">
+      <label for="username">Username TikTok</label>
+      <div class="at">
+        <span>@</span>
+        <input type="text" id="username" placeholder="ferxmc7" autocomplete="off">
+      </div>
+    </div>
+    <button class="btn" id="btnStart">Masuk ke Dashboard</button>
+    <div class="note" id="noteMsg"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { db, sanitizeUsername } from "./firebase-config.js";
+  import { ref, get, set } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+
+  const input = document.getElementById("username");
+  const note = document.getElementById("noteMsg");
+
+  // Kalau sebelumnya udah pernah setup di HP ini, langsung lempar ke dashboard
+  const saved = localStorage.getItem("manzxsub_user");
+  if (saved) { window.location.href = `dashboard.html?user=${saved}`; }
+
+  document.getElementById("btnStart").addEventListener("click", async () => {
+    const clean = sanitizeUsername(input.value);
+    if (!clean) { note.textContent = "Isi username dulu ya."; return;}
+
+    note.textContent = "Menyiapkan dashboard...";
+    const userRef = ref(db, `users/${clean}`);
+    const snap = await get(userRef);
+    if (!snap.exists()) {
+      await set(userRef, {
+        profile: { username: clean, createdAt: Date.now() },
+        timer: { minutesPerCoin: 3, maxCoins: 30, timerCoins: 0, timerEnd: 0, totalCoins: 0 },
+        goals: [
+          { threshold: 10, label: "Ganti outfit" },
+          { threshold: 20, label: "Buka map baru" },
+          { threshold: 30, label: "Boss fight" },
+          { threshold: 50, label: "Giveaway kecil" }
+        ],
+        alerts: {
+          defaultMessage: "{user} ngirim {gift} ({coins} coin)",
+          defaultDuration: 4,
+          perCoin: {}
+        },
+        lastGift: null
+      });
+    }
+    localStorage.setItem("manzxsub_user", clean);
+    window.location.href = `dashboard.html?user=${clean}`;
+  });
+
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("btnStart").click(); });
+</script>
+</body>
+</html>
