@@ -83,6 +83,28 @@
   }
   setInterval(renderTimer, 250);
 
+  let soundEnabled = true, soundVolume = 0.6;
+  let audioCtx;
+  function getCtx(){
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+  function tone(ctx, freq, start, dur, gain, type = "sine"){
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    osc.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(gain, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    osc.start(start); osc.stop(start + dur);
+  }
+  function playTimerSound(){
+    if (!soundEnabled) return;
+    const ctx = getCtx(); const t = ctx.currentTime;
+    tone(ctx, 880, t, 0.09, soundVolume * 0.5, "triangle");
+    tone(ctx, 1318, t + 0.07, 0.12, soundVolume * 0.5, "triangle");
+  }
+
   function renderRing(){
     const lit = Math.min(state.timerCoins || 0, maxCoins);
     ticks.forEach((t, i) => t.classList.toggle("lit", i < lit));
@@ -90,6 +112,7 @@
       for (let i = litCountRendered; i < lit; i++) {
         if (ticks[i]) { ticks[i].classList.add("pop"); setTimeout(() => ticks[i] && ticks[i].classList.remove("pop"), 500); }
       }
+      playTimerSound();
     }
     litCountRendered = lit;
     document.getElementById("coinNow").textContent = lit;
@@ -104,6 +127,8 @@
       const v = snap.val() || {};
       if (v.maxCoins && v.maxCoins !== maxCoins) { maxCoins = v.maxCoins; buildRing(maxCoins); litCountRendered = -1; }
       minutesPerCoin = v.minutesPerCoin || minutesPerCoin;
+      soundEnabled = v.soundEnabled !== false;
+      soundVolume = (v.soundVolume != null ? v.soundVolume : 60) / 100;
       state.timerEnd = v.timerEnd || 0;
       state.timerCoins = v.timerCoins || 0;
       renderRing();
