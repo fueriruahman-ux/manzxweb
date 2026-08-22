@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ManzXSub — Overlay Alert</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  html,body{ background:transparent; }
+  .stage{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .alert-box{ text-align:center; max-width:92vw; opacity:0; }
+  .alert-box.show{ opacity:1; }
+  .alert-text{ font-weight:800; line-height:1.3; }
+
+  .test-panel{
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    display:flex; gap:8px; background:var(--panel); border:1px solid var(--line);
+    padding:8px; border-radius:999px; flex-wrap:wrap; justify-content:center; max-width:94vw;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="alert-box" id="alertBox">
+    <div class="alert-text" id="alertText"></div>
+  </div>
+</div>
+
+<div class="test-panel" id="testPanel">
+  <button class="btn small" id="btnTest1">Test 1 coin</button>
+  <button class="btn small" id="btnTest5">Test 5 coin</button>
+</div>
+
+<script type="module">
+  import { db, sanitizeUsername } from "./firebase-config.js";
+  import { ref, onValue, update } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+  import { applyTierGate } from "./tier-gate.js";
+
+  const params = new URLSearchParams(location.search);
+  const uname = sanitizeUsername(params.get("user") || "");
+  const isTest = params.get("test") === "1" || !params.get("user");
+  document.getElementById("testPanel").style.display = isTest ? "flex" : "none";
+
+  let currentStyle = { font:"Sora", effect:"glow", textColor:"#FFFFFF", accentColor:"#39FF14", fontSize:24, animation:"slide", soundEnabled:true, soundVolume:60 };
+  let currentAlerts = { defaultMessage:"{user} ngirim {gift} ({coins} coin)", defaultDuration:4, perCoin:{} };
+  let lastTs = null;
+  let firstSnapshot = true;
+
+  let audioCtx;
+  function getCtx(){
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+  function tone(ctx, freq, start, dur, gain, type = "sine"){
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    osc.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(gain, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    osc.start(start); osc.stop(start + dur);
+  }
+  function playAlertSound(vol){
+    const ctx = getCtx(); const t = ctx.currentTime;
+    [523, 659, 784].forEach((f, i) => tone(ctx, f, t + i * 0.08, 0.15, vol * 0.55, "triangle"));
+  }
+
+  function renderAlert(gift){
+    const box = document.getElementById("alertBox");
+    const text = document.getElementById("alertText");
+
+    const template = currentAlerts.perCoin && currentAlerts.perCoin[gift.coins]
+      ? currentAlerts.perCoin[gift.coins]
+      : currentAlerts.defaultMessage;
+
+    text.textContent = template
+      .replace("{user}", gift.name || "Seseorang")
+      .replace("{gift}", gift.gift || "gift")
+      .replace("{coins}", gift.coins);
+
+    text.style.fontFamily = currentStyle.font;
+    text.style.fontSize = currentStyle.fontSize + "px";
+    text.style.color = currentStyle.textColor;
+    text.className = "alert-text effect-" + currentStyle.effect;
+    box.style.color = currentStyle.accentColor;
+
+    box.classList.remove("anim-slide","anim-pop","anim-fade","show");
+    void box.offsetWidth;
+    box.classList.add("show", "anim-" + currentStyle.animation);
+
+    if (currentStyle.soundEnabled !== false) {
+      playAlertSound((currentStyle.soundVolume != null ? currentStyle.soundVolume : 60) / 100);
+    }
+
+    clearTimeout(renderAlert._t);
+    const duration = (currentAlerts.defaultDuration || 4) * 1000;
+    renderAlert._t = setTimeout(() => box.classList.remove("show"), duration);
+  }
+
+  if (!uname) {
+    document.getElementById("alertText").textContent = "Tambahin ?user=USERNAME di link buat lihat data asli";
+    document.getElementById("alertBox").classList.add("show");
+  } else {
+    if (!isTest && uname !== "ferxmc7") await applyTierGate(db, uname, document.querySelector(".stage"));
+    const userRef = ref(db, `users/${uname}`);
+    onValue(userRef, (snap) => {
+      const data = snap.val() || {};
+      currentStyle = data.alertStyle || currentStyle;
+      currentAlerts = data.alerts || currentAlerts;
+
+      if (!firstSnapshot && data.lastGift && data.lastGift.ts !== lastTs) {
+        renderAlert(data.lastGift);
+      }
+      lastTs = data.lastGift ? data.lastGift.ts : null;
+      firstSnapshot = false;
+    });
+
+    async function simulate(coins){
+      await update(ref(db, `users/${uname}`), {
+        lastGift: { name: "Tester", gift: coins > 1 ? "Gift Besar" : "Coin", coins, ts: Date.now() }
+      });
+    }
+    document.getElementById("btnTest1").addEventListener("click", () => simulate(1));
+    document.getElementById("btnTest5").addEventListener("click", () => simulate(5));
+  }
+</script>
+</body>
+</html>
