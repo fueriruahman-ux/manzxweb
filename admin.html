@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ManzXSub — Admin</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap{ max-width:480px; margin:0 auto; padding:20px 16px 60px; }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:6px 4px 22px; }
+  header .wordmark{ font-size:15px; }
+  .denied{ text-align:center; padding:60px 20px; color:var(--ink-dim); }
+  .u-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:16px;
+    padding:12px 14px; margin-bottom:10px;
+  }
+  .u-name{ font-weight:700; font-size:13.5px; }
+  .u-usage{ font-size:11px; color:var(--ink-dim); margin-top:2px; }
+  .u-badge{
+    font-size:10.5px; font-weight:800; padding:4px 10px; border-radius:999px;
+    letter-spacing:.5px;
+  }
+  .u-badge.free{ background:rgba(255,255,255,0.08); color:var(--ink-dim); }
+  .u-badge.vip{ background:#fff; color:#0A0A0C; }
+  .u-actions{ display:flex; gap:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="wordmark">MANZ<span class="x">✕</span>SUB — Admin</div>
+  </header>
+  <div id="content"><p style="text-align:center;color:var(--ink-dim);font-size:13px;">Memuat...</p></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { db, sanitizeUsername } from "./firebase-config.js";
+  import { ref, get, update } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+
+  const OWNER_USERNAME = "ferxmc7";
+  const uname = sanitizeUsername(localStorage.getItem("manzxsub_user") || "");
+  const content = document.getElementById("content");
+
+  if (uname !== OWNER_USERNAME) {
+    content.innerHTML = `<div class="denied">🔒 Halaman ini cuma buat Owner.</div>`;
+  } else {
+    const snap = await get(ref(db, "users"));
+    const all = snap.val() || {};
+    const entries = Object.entries(all).filter(([k]) => k !== OWNER_USERNAME);
+
+    if (!entries.length) {
+      content.innerHTML = `<p style="text-align:center;color:var(--ink-dim);font-size:13px;">Belum ada member lain.</p>`;
+    } else {
+      content.innerHTML = entries.map(([key, u]) => {
+        const tier = (u.profile && u.profile.tier) || "free";
+        const usage = u.usage || {};
+        const usedMin = Math.round((usage.seconds || 0) / 60);
+        return `
+        <div class="u-row" data-user="${key}">
+          <div>
+            <div class="u-name">@${key}</div>
+            <div class="u-usage">${usage.date || "-"} · ${usedMin} menit kepake</div>
+          </div>
+          <div class="u-actions">
+            <span class="u-badge ${tier}">${tier.toUpperCase()}</span>
+            <button class="btn small toggle-btn">${tier === "vip" ? "Jadiin Free" : "Jadiin VIP"}</button>
+          </div>
+        </div>`;
+      }).join("");
+
+      content.querySelectorAll(".toggle-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const row = btn.closest(".u-row");
+          const key = row.dataset.user;
+          const badge = row.querySelector(".u-badge");
+          const newTier = badge.textContent.toLowerCase() === "vip" ? "free" : "vip";
+          await update(ref(db, `users/${key}/profile`), { tier: newTier });
+          badge.textContent = newTier.toUpperCase();
+          badge.className = "u-badge " + newTier;
+          btn.textContent = newTier === "vip" ? "Jadiin Free" : "Jadiin VIP";
+          toast(`@${key} sekarang ${newTier.toUpperCase()}`);
+        });
+      });
+    }
+  }
+
+  function toast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 1800);
+  }
+</script>
+</body>
+</html>
