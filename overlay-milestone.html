@@ -48,6 +48,25 @@
   document.getElementById("testPanel").style.display = isTest ? "flex" : "none";
   document.getElementById("testNote").textContent = isTest ? "* Mode test — angka cuma contoh" : "";
 
+  let audioCtx, lastTotal = null;
+  function getCtx(){
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+  function tone(ctx, freq, start, dur, gain, type = "sine"){
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    osc.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(gain, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    osc.start(start); osc.stop(start + dur);
+  }
+  function playMilestoneSound(vol){
+    const ctx = getCtx(); const t = ctx.currentTime;
+    [392, 494, 587, 784].forEach((f, i) => tone(ctx, f, t + i * 0.09, 0.18, vol * 0.5, "sine"));
+  }
+
   if (!uname) {
     document.getElementById("goalName").textContent = "Tambahin ?user=USERNAME di link buat lihat data asli";
   } else {
@@ -59,7 +78,12 @@
         { threshold: 10, label: "Goal Kece" }
       ];
       const total = (data.timer && data.timer.totalCoins) || 0;
-      const style = data.milestoneStyle || { font:"Sora", effect:"plain", textColor:"#39FF14", barColor:"#FFE600", fontSize:28 };
+      const style = data.milestoneStyle || { font:"Sora", effect:"plain", textColor:"#39FF14", barColor:"#FFE600", fontSize:28, soundEnabled:true, soundVolume:60 };
+
+      if (lastTotal !== null && total > lastTotal && style.soundEnabled !== false) {
+        playMilestoneSound((style.soundVolume != null ? style.soundVolume : 60) / 100);
+      }
+      lastTotal = total;
 
       let goal = goals.find(g => total < g.threshold);
       let done = false;
