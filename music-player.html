@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ManzXSub — Overlay Musik</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  html,body{ background:transparent; }
+  .stage{ min-height:100vh; display:flex; align-items:flex-end; justify-content:center; padding:18px; }
+  .now-playing{
+    display:flex; align-items:center; gap:10px;
+    background:var(--panel-2); border:1px solid var(--line);
+    border-radius:999px; padding:7px 18px 7px 7px; max-width:320px;
+    opacity:0; transform:translateY(16px); transition:all .4s ease;
+  }
+  .now-playing.show{ opacity:1; transform:translateY(0); }
+  .thumb{ width:38px; height:38px; border-radius:50%; overflow:hidden; flex:none; background:#000; }
+  .thumb img{ width:100%; height:100%; object-fit:cover; }
+  .info{ overflow:hidden; }
+  .title{ font-family:'Inter',sans-serif; font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:210px; }
+  .requester{ font-size:10.5px; color:var(--ink-dim); }
+  #ytHolder{ position:fixed; width:2px; height:2px; opacity:0; pointer-events:none; overflow:hidden; }
+
+  .test-panel{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); display:flex; gap:8px; background:var(--panel); border:1px solid var(--line); padding:8px; border-radius:999px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="now-playing" id="nowPlaying">
+    <div class="thumb"><img id="thumbImg" src="" alt=""></div>
+    <div class="info">
+      <div class="title" id="titleText">-</div>
+      <div class="requester" id="requesterText"></div>
+    </div>
+  </div>
+</div>
+<div id="ytHolder"><div id="ytPlayer"></div></div>
+
+<div class="test-panel" id="testPanel">
+  <button class="btn small" id="btnTestSong">▶ Test lagu</button>
+</div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script type="module">
+  import { db, sanitizeUsername } from "./firebase-config.js";
+  import { ref, onValue, update } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+  import { applyTierGate } from "./tier-gate.js";
+
+  const params = new URLSearchParams(location.search);
+  const uname = sanitizeUsername(params.get("user") || "");
+  const isTest = params.get("test") === "1" || !params.get("user");
+  document.getElementById("testPanel").style.display = isTest ? "flex" : "none";
+
+  let player = null;
+  let pendingSong = null;
+  let volume = 70;
+
+  window.onYouTubeIframeAPIReady = function () {
+    player = new YT.Player("ytPlayer", {
+      height: "2", width: "2",
+      playerVars: { autoplay: 1, controls: 0, playsinline: 1 },
+      events: {
+        onReady: () => { player.setVolume(volume); if (pendingSong) playSong(pendingSong); }
+      }
+    });
+  };
+
+  function playSong(song){
+    if (!player || !player.loadVideoById) { pendingSong = song; return; }
+    player.setVolume(volume);
+    player.loadVideoById(song.videoId);
+    document.getElementById("thumbImg").src = `https://i.ytimg.com/vi/${song.videoId}/default.jpg`;
+    document.getElementById("titleText").textContent = song.title || "Lagu";
+    document.getElementById("requesterText").textContent = song.requestedBy ? `diminta oleh @${song.requestedBy}` : "";
+    const box = document.getElementById("nowPlaying");
+    box.classList.add("show");
+    clearTimeout(playSong._t);
+    playSong._t = setTimeout(() => box.classList.remove("show"), 8000);
+  }
+
+  if (uname) {
+    (async () => {
+      if (!isTest && uname !== "ferxmc7") await applyTierGate(db, uname, document.querySelector(".stage"));
+
+      let lastTs = null, firstSnapshot = true;
+      onValue(ref(db, `users/${uname}/music`), (snap) => {
+        const m = snap.val() || {};
+        volume = m.volume != null ? m.volume : 70;
+        if (player) player.setVolume(volume);
+        const song = m.currentSong;
+        if (!song) return;
+        if (!firstSnapshot && song.ts !== lastTs) playSong(song);
+        lastTs = song.ts;
+        firstSnapshot = false;
+      });
+    })();
+
+    document.getElementById("btnTestSong").addEventListener("click", () => {
+      update(ref(db, `users/${uname}/music`), {
+        currentSong: { videoId: "dQw4w9WgXcQ", title: "Lagu Test", requestedBy: "tester", ts: Date.now() }
+      });
+    });
+  }
+</script>
+</body>
+</html>
