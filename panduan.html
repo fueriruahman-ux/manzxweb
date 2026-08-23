@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ManzXSub — Panduan Setup</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap{ max-width:480px; margin:0 auto; padding:24px 16px 60px; }
+  .hero{ text-align:center; margin-bottom:26px; }
+  .hero .wordmark{ font-size:14px; margin-bottom:6px; }
+  .hero h1{ font-family:'Sora',sans-serif; font-size:19px; margin:2px 0 8px; }
+  .hero p{ font-size:12.5px; color:var(--ink-dim); line-height:1.5; margin:0; }
+
+  .step{
+    display:flex; gap:14px; margin-bottom:16px;
+    background:var(--panel-2); border:1px solid var(--line);
+    border-radius:20px; padding:16px;
+  }
+  .step-num{
+    flex:none; width:30px; height:30px; border-radius:50%;
+    background:#fff; color:#0A0A0C; font-weight:800; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .step-body h3{ font-family:'Sora',sans-serif; font-size:14px; margin:0 0 6px; }
+  .step-body p{ font-size:12.5px; color:var(--ink-dim); line-height:1.5; margin:0 0 8px; }
+  .step-body code{
+    background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:6px; font-size:11.5px;
+  }
+  .step-body .btn, .step-body a.btn{ margin-top:4px; display:inline-block; text-decoration:none; }
+
+  .divider-note{
+    text-align:center; font-size:11px; color:var(--ink-dim); opacity:.7;
+    margin:24px 0 4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="wordmark">MANZ<span class="x">✕</span>SUB</div>
+    <h1>Panduan Setup dari Awal</h1>
+    <p>Gak perlu ngoding, ikutin aja step-nya satu-satu. Ini buat kamu yang baru pertama kali pakai ManzXSub.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <h3>Buka website & masukin username TikTok</h3>
+      <p>Buka halaman utama ManzXSub, isi username TikTok kamu (tanpa @). Ini bukan login asli, cuma dipake buat bikin dashboard sendiri.</p>
+      <a class="btn small" href="index.html">Buka Setup</a>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <h3>Lanjut dari Member Pass ke Dashboard</h3>
+      <p>Setelah isi username, bakal muncul kartu member kamu. Tinggal tap "Lanjut ke Dashboard →".</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <h3>Atur Timer, Milestone, dan Alert</h3>
+      <p>Di dashboard ada 3 tab pengaturan. Atur sesuka kamu — menit per coin, goal, sampe warna & font alert. Jangan lupa tap <b>Simpan</b> tiap habis ubah.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <h3>Copy link overlay, tempel ke software streaming</h3>
+      <p>Tiap tab (Timer/Milestone/Alert) punya link sendiri. Tap "Copy Link", terus tempel sebagai <b>Browser Source</b> di OBS, atau di aplikasi overlay Android kamu.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <h3>Download & jalanin Bot Termux</h3>
+      <p>Ini bagian yang nyambungin gift TikTok asli ke overlay kamu. Download filenya, install Termux dari Play Store/F-Droid, terus jalanin perintah ini:</p>
+      <p><code>pkg install nodejs</code><br><code>npm install tiktok-live-connector</code><br><code>node bot.js</code></p>
+      <a class="btn small" href="bot.js" download>⬇ Download bot.js</a>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">6</div>
+    <div class="step-body">
+      <h3>Live streaming!</h3>
+      <p>Nyalain live TikTok kamu seperti biasa. Begitu ada yang ngirim gift, timer/alert/milestone bakal update otomatis di overlay.</p>
+    </div>
+  </div>
+
+  <div class="divider-note">🔒 Fitur request musik (!play) masih coming soon, stay tuned.</div>
+</div>
+</body>
+</html>
