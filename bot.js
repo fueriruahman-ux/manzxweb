@@ -1,6 +1,7 @@
 // ============================================================
 // BOT MANZXSUB — dengerin TikTok Live, update Firebase
 // Gabungan: Timer + Alert + Musik (!play) jadi satu script
+// (Versi 2.x tiktok-live-connector — pakai TikTokLiveConnection)
 // ============================================================
 // Cara pakai di Termux:
 // 1. pkg install nodejs
@@ -9,13 +10,16 @@
 // 4. Jalanin: node bot.js
 // ============================================================
 
-const { WebcastPushConnection } = require('tiktok-live-connector');
+const { TikTokLiveConnection, WebcastEvent } = require('tiktok-live-connector');
 
 const USERNAME = "ferxmc7";  // username TikTok kamu (sama kayak di dashboard ManzXSub)
 const FIREBASE_URL = "https://subathon-feri-default-rtdb.asia-southeast1.firebasedatabase.app";
 const YOUTUBE_API_KEY = "GANTI_DENGAN_API_KEY_YOUTUBE_KAMU"; // buat fitur !play, isi nanti
 
-const connection = new WebcastPushConnection(USERNAME);
+const connection = new TikTokLiveConnection(USERNAME, {
+  processInitialData: true,
+  enableExtendedGiftInfo: true
+});
 
 connection.connect()
   .then(state => console.log(`✅ Terhubung ke live @${USERNAME}, roomId: ${state.roomId}`))
@@ -24,7 +28,7 @@ connection.connect()
 connection.on('disconnected', () => console.log("⚠️ Koneksi putus, coba reconnect manual ya."));
 
 // ================== GIFT -> TIMER + ALERT ==================
-connection.on('gift', async (data) => {
+connection.on(WebcastEvent.GIFT, async (data) => {
   // Kalau gift dikirim beruntun (combo), tunggu sampai combo-nya selesai
   if (data.giftType === 1 && !data.repeatEnd) return;
 
@@ -64,7 +68,7 @@ connection.on('gift', async (data) => {
 });
 
 // ================== CHAT -> MUSIK (!play) ==================
-connection.on('chat', async (data) => {
+connection.on(WebcastEvent.CHAT, async (data) => {
   const comment = data.comment || "";
   const sender = data.uniqueId;
   if (!comment.toLowerCase().startsWith("!play ")) return;
