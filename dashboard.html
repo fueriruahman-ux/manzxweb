@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ManzXSub — Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap{ max-width:480px; margin:0 auto; padding:20px 16px 60px; }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:6px 4px 22px; }
+  header .wordmark{ font-size:15px; }
+  header .user{ font-size:11.5px; color:var(--ink-dim); }
+  header .user a{ color:var(--ink-dim); text-decoration:underline; }
+
+  .toast.warn{ background:#E5484D; color:#fff; }
+
+  .status-bar{
+    background:var(--panel-2); border:1px solid var(--line);
+    border-radius:16px; padding:12px 16px; margin-bottom:16px;
+    font-size:12.5px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .status-bar b{ font-weight:800; }
+  .status-bar .tier-tag{
+    font-size:10.5px; font-weight:800; padding:3px 10px; border-radius:999px;
+    background:rgba(255,255,255,0.08); color:var(--ink-dim);
+  }
+  .status-bar .tier-tag.vip{ background:#fff; color:#0A0A0C; }
+
+  .tabs{
+    display:flex; position:relative;
+    background:var(--panel-2); border:1px solid var(--line);
+    border-radius:999px; padding:4px; margin-bottom:20px;
+  }
+  .tabs button{
+    flex:1; position:relative; z-index:2;
+    background:transparent; color:var(--ink-dim);
+    padding:10px 0; border-radius:999px; font-weight:700; font-size:12.5px;
+    transition:color .25s ease;
+  }
+  .tabs button.active{ color:var(--bg); }
+  .tab-thumb{
+    position:absolute; top:4px; bottom:4px; left:4px;
+    width:calc(25% - 4px);
+    background:var(--white); border-radius:999px;
+    transition: transform .3s cubic-bezier(.65,0,.35,1);
+    z-index:1;
+  }
+
+  .panel{ display:none; padding:22px 18px; }
+  .panel.active{ display:block; animation:fadeUp .35s ease; }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+
+  .panel h2{ font-family:'Sora',sans-serif; font-size:15px; margin:0 0 4px; }
+  .panel .sub{ font-size:12px; color:var(--ink-dim); margin:0 0 20px; line-height:1.5; }
+  .section-title{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-dim); margin:22px 0 12px; border-top:1px solid var(--line); padding-top:18px; }
+
+  .row{ display:flex; gap:10px; margin-bottom:12px; }
+  .row > div{ flex:1; }
+  label.small{ display:block; font-size:10.5px; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px; }
+
+  select{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--ink);
+    border-radius:14px; padding:11px 14px; font-family:'Inter',sans-serif; font-size:14px;
+    width:100%; outline:none;
+  }
+  input[type="color"]{
+    width:100%; height:42px; border-radius:14px; border:1px solid var(--line);
+    background:var(--panel-2); padding:4px; cursor:pointer;
+  }
+
+  .goal-row, .alert-row{
+    display:flex; gap:8px; align-items:center;
+    margin-bottom:10px; background:var(--panel-2);
+    border:1px solid var(--line); border-radius:16px; padding:10px;
+  }
+  .goal-row input[type="number"]{ width:64px; flex:none; }
+  .alert-row input[type="number"]{ width:56px; flex:none; }
+  .goal-row input[type="text"], .alert-row input[type="text"]{ flex:1; background:transparent; border:none; padding:6px 4px; }
+  .del{
+    width:28px; height:28px; border-radius:50%; flex:none;
+    background:transparent; color:var(--ink-dim); border:1px solid var(--line);
+    font-size:14px; line-height:1;
+  }
+  .del:active{ transform:scale(0.9); }
+
+  .add-line{
+    width:100%; padding:11px; border-radius:14px;
+    background:transparent; border:1px dashed var(--line);
+    color:var(--ink-dim); font-weight:600; font-size:12.5px;
+    margin-bottom:18px;
+  }
+
+  /* Link box - blurred by default kayak referensi Sociabuzz */
+  .link-box{
+    position:relative;
+    background:var(--panel-2); border:1px solid var(--line);
+    border-radius:14px; padding:14px; margin-top:6px;
+    overflow:hidden;
+  }
+  .link-box input{
+    border:none; background:transparent; padding:2px 0; font-size:12px;
+    color:var(--ink-dim); width:100%; filter:blur(5px); user-select:none;
+    transition:filter .2s ease;
+  }
+  .link-box.revealed input{ filter:blur(0); user-select:text; }
+  .mask-hint{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    gap:6px; background:rgba(10,10,12,0.55); font-size:12px; font-weight:700;
+    cursor:pointer; z-index:2;
+  }
+  .link-box.revealed .mask-hint{ display:none; }
+  .warn-text{ font-size:11px; color:#B0868A; margin:10px 0 0; line-height:1.4; }
+  .link-actions{ display:flex; gap:8px; margin-top:10px; }
+  .link-actions .btn{ flex:1; text-align:center; }
+  .actions{ display:flex; gap:10px; margin-top:18px; }
+
+  /* Live preview */
+  .preview-box{
+    background:#000; border:1px solid var(--line); border-radius:16px;
+    padding:22px 16px; margin-top:6px; text-align:center; overflow:hidden;
+  }
+  .preview-goal{ font-weight:800; line-height:1.2; }
+  .preview-bar-wrap{
+    margin:14px auto 8px; height:14px; width:90%; border-radius:999px;
+    background:rgba(255,255,255,0.12); overflow:hidden;
+  }
+  .preview-bar-fill{ height:100%; width:30%; border-radius:999px; transition:background .2s ease; }
+  .preview-pct{ font-size:11px; color:var(--ink-dim); }
+
+  .effect-plain{ -webkit-text-stroke:0; text-shadow:none; }
+  .effect-outline{ -webkit-text-stroke:2px #000; paint-order:stroke fill; text-shadow:2px 2px 0 #000; }
+  .effect-glow{ -webkit-text-stroke:0; }
+
+  .alert-preview-stage{ min-height:64px; display:flex; align-items:center; justify-content:center; margin-top:14px; }
+  .alert-preview{ font-weight:800; }
+  @keyframes pvSlide{ from{ transform:translateY(-30px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
+  @keyframes pvPop{ from{ transform:scale(0.4); opacity:0;} to{ transform:scale(1); opacity:1;} }
+  @keyframes pvFade{ from{ opacity:0;} to{ opacity:1;} }
+  .anim-slide{ animation:pvSlide .5s ease; }
+  .anim-pop{ animation:pvPop .45s cubic-bezier(.34,1.56,.64,1); }
+  .anim-fade{ animation:pvFade .6s ease; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="wordmark">MANZ<span class="x">✕</span>SUB</div>
+    <div class="user">@<span id="uname"></span> · <a href="#" id="switchUser">ganti akun</a><span id="adminLink"></span> · <a href="privacy.html" style="color:var(--ink-dim);text-decoration:underline;">privasi</a></div>
+  </header>
+
+  <div class="status-bar" id="statusBar">Memuat status akun...</div>
+
+  <div class="status-bar" style="flex-direction:column; align-items:stretch; gap:8px;">
+    <span>Font Utama <span style="color:var(--ink-dim); font-weight:400;">(dipakai sama di Timer, Milestone & Alert)</span></span>
+    <select id="globalFont">
+      <option value="Share Tech Mono">Share Tech Mono (digital)</option>
+      <option value="Orbitron">Orbitron (tebal)</option>
+      <option value="Sora">Sora</option>
+      <option value="Poppins">Poppins</option>
+      <option value="Anton">Anton (tebal)</option>
+      <option value="Bebas Neue">Bebas Neue</option>
+      <option value="Inter">Inter</option>
+    </select>
+  </div>
+
+  <div class="tabs">
+    <div class="tab-thumb" id="tabThumb"></div>
+    <button class="active" data-tab="timer">Timer</button>
+    <button data-tab="milestone">Milestone</button>
+    <button data-tab="alert">Alert</button>
+    <button data-tab="music">Musik</button>
+  </div>
+
+  <!-- TIMER -->
+  <div class="panel active" id="panel-timer">
+    <h2>Timer</h2>
+    <p class="sub">Atur nambahnya berapa menit tiap ada 1 coin masuk, sama batas coin maksimal buat timer lu.</p>
+    <div class="row">
+      <div>
+        <label class="small">Menit / coin</label>
+        <input type="number" id="minutesPerCoin" min="1" value="3">
+      </div>
+      <div>
+        <label class="small">Batas coin</label>
+        <input type="number" id="maxCoins" min="1" value="30">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label class="small">Suara nambah coin</label>
+        <select id="tm-soundEnabled">
+          <option value="1">Aktif</option>
+          <option value="0">Mati</option>
+        </select>
+      </div>
+      <div>
+        <label class="small">Volume (%)</label>
+        <input type="number" id="tm-soundVolume" min="0" max="100" value="60">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label class="small">Efek teks</label>
+        <select id="tm-effect">
+          <option value="glow">Glow</option>
+          <option value="outline">Outline / stroke</option>
+          <option value="plain">Polos</option>
+        </select>
+      </div>
+      <div>
+        <label class="small">Warna teks</label>
+        <input type="color" id="tm-textColor" value="#39FF14">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label class="small">Ukuran teks (px)</label>
+        <input type="number" id="tm-fontSize" min="20" value="52">
+      </div>
+    </div>
+    <label class="small">Label di atas jam</label>
+    <input type="text" id="tm-labelText" value="Waktu Tersisa" style="margin-bottom:12px;">
+
+    <label class="small" style="margin-top:16px;">Contoh tampilan (live preview)</label>
+    <div class="preview-box" id="tmPreviewBox">
+      <div style="font-family:'Inter',sans-serif;font-weight:700;letter-spacing:3px;font-size:12px;color:var(--ink-dim);margin-bottom:8px;text-transform:uppercase;" id="tmPreviewLabel">Waktu Tersisa</div>
+      <div id="tmPreviewClock" style="font-variant-numeric:tabular-nums;line-height:1;">01:30:00</div>
+      <div class="pct-text" id="tmPreviewInfo" style="margin-top:12px;"></div>
+      <button class="btn ghost small" id="tmPreviewSound" type="button" style="margin-top:10px;">🔊 Coba suara</button>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="saveTimer">Simpan</button>
+    </div>
+
+    <div class="section-title">Mulai sesi timer</div>
+    <p class="sub" style="margin-bottom:10px;">Set durasi awal sebelum live, baru pencet Mulai pas siap. Abis itu tiap gift tetep nambah waktu kayak biasa.</p>
+    <div class="row">
+      <div>
+        <label class="small">Durasi awal (menit)</label>
+        <input type="number" id="tm-initialMinutes" min="0" value="120">
+      </div>
+    </div>
+    <div class="actions" style="margin-top:0;">
+      <button class="btn" id="btnStartTimer">▶ Mulai</button>
+      <button class="btn ghost small" id="btnStopTimer">⏹ Stop</button>
+    </div>
+    <div class="actions" style="margin-top:8px;">
+      <button class="btn ghost small" id="btnResetTimer">🔁 Reset ke Awal</button>
+      <button class="btn ghost small" id="btnTestCoin">🧪 Test +1 Coin</button>
+    </div>
+    <div class="pct-text" id="timerRunStatus" style="margin-top:10px; text-align:center;"></div>
+
+    <label class="small" style="margin-top:20px;">Link overlay Timer</label>
+    <div class="link-box" data-box="linkTimer">
+      <div class="mask-hint">👁 Klik untuk melihat link</div>
+      <input type="text" id="linkTimer" readonly>
+    </div>
+    <p class="warn-text">⚠ Jangan biarkan siapapun mengetahui atau melihat link overlay ini.</p>
+    <div class="link-actions">
+      <button class="btn ghost small" data-copy="linkTimer">Copy Link</button>
+      <button class="btn ghost small" data-open="linkTimer">Buka Tab Baru</button>
+    </div>
+  </div>
+
+  <!-- MILESTONE -->
+  <div class="panel" id="panel-milestone">
+    <h2>Milestone</h2>
+    <p class="sub">Goal ini beda sama timer — gak kebatas di 30 coin, lu bisa bikin sampe ratusan biar penonton tetep semangat push walau timer udah mentok.</p>
+    <div id="goalList"></div>
+    <button class="add-line" id="addGoal">+ Tambah goal</button>
+
+    <div class="section-title">Tampilan overlay</div>
+    <div class="row">
+      <div>
+        <label class="small">Efek teks</label>
+        <select id="ms-effect">
+          <option value="plain">Polos</option>
+          <option value="outline">Outline / stroke</option>
+          <option value="glow">Glow</option>
+        </select>
+      </div>
+      <div>
+        <label class="small">Warna teks</label>
+        <input type="color" id="ms-textColor" value="#39FF14">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label class="small">Warna progress bar</label>
+        <input type="color" id="ms-barColor" value="#FFE600">
+      </div>
+      <div>
+        <label class="small">Ukuran teks (px)</label>
+        <input type="number" id="ms-fontSize" min="10" value="28">
+      </div>
+    </div>
+    <label class="small">Label di atas nama goal</label>
+    <input type="text" id="ms-labelText" value="Goal Berikutnya" style="margin-bottom:12px;">
+    <div class="row">
+      <div>
+        <label class="small">Suara saat progress nambah</label>
+        <select id="ms-soundEnabled">
+          <option value="1">Aktif</option>
+          <option value="0">Mati</option>
+        </select>
+      </div>
+      <div>
+        <label class="small">Volume suara (%)</label>
+        <input type="number" id="ms-soundVolume" min="0" max="100" value="60">
+      </div>
+    </div>
+
+    <label class="small" style="margin-top:16px;">Contoh tampilan (live preview)</label>
+    <div class="preview-box" id="msPreviewBox">
+      <div style="font-family:'Inter',sans-serif;font-weight:700;letter-spacing:2px;font-size:11px;color:var(--ink-dim);margin-bottom:8px;text-transform:uppercase;" id="msPreviewLabel">Goal Berikutnya</div>
+      <div class="preview-goal" id="msPreviewText">Goal Kece</div>
+      <div class="preview-bar-wrap"><div class="preview-bar-fill" id="msPreviewFill"></div></div>
+      <div class="preview-pct" id="msPreviewPct">3.000 / 10.000 coin (30%) — cuma contoh</div>
+      <button class="btn ghost small" id="msPreviewSound" type="button" style="margin-top:10px;">🔊 Coba suara</button>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="saveGoals">Simpan</button>
+      <button class="btn ghost small" id="btnTestMilestone">🧪 Test +10 Coin</button>
+    </div>
+    <label class="small" style="margin-top:20px;">Link overlay Milestone</label>
+    <div class="link-box" data-box="linkMilestone">
+      <div class="mask-hint">👁 Klik untuk melihat link</div>
+      <input type="text" id="linkMilestone" readonly>
+    </div>
+    <p class="warn-text">⚠ Jangan biarkan siapapun mengetahui atau melihat link overlay ini.</p>
+    <div class="link-actions">
+      <button class="btn ghost small" data-copy="linkMilestone">Copy Link</button>
+      <button class="btn ghost small" data-open="linkMilestone">Buka Tab Baru</button>
+    </div>
+  </div>
+
+  <!-- MUSIK -->
+  <div class="panel" id="panel-music">
+    <h2>Musik 🔒</h2>
+    <p class="sub">Fitur request lagu lewat chat (<b>!play judul lagu</b>) lagi disiapin. Butuh API key YouTube yang syaratnya agak ribet buat sementara ini. Sabar ya!</p>
+    <div class="preview-box" style="padding:40px 16px;">
+      <div style="font-size:34px;">🔒</div>
+      <div style="margin-top:10px;font-weight:800;font-family:'Sora',sans-serif;">Coming Soon</div>
+      <div style="font-size:12px;color:var(--ink-dim);margin-top:4px;">Stay tuned buat update selanjutnya 👀</div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-alert">
+    <h2>Alert</h2>
+    <p class="sub">Ini pesan default, dipake kalo jumlah coin-nya gak ada pesan khusus. Tinggal pake {user}, {gift}, sama {coins} biar otomatis keisi sendiri.</p>
+    <label class="small">Pesan default</label>
+    <input type="text" id="defaultMessage" style="margin-bottom:12px;">
+    <div class="row">
+      <div>
+        <label class="small">Durasi tampil (detik)</label>
+        <input type="number" id="defaultDuration" min="1" value="4">
+      </div>
+    </div>
+    <label class="small" style="margin-top:6px;">Pesan khusus per jumlah coin</label>
+    <div id="alertList" style="margin-top:8px;"></div>
+    <button class="add-line" id="addAlert">+ Tambah pesan khusus</button>
+
+    <label class="small" style="margin-top:6px;">URL GIF (opsional)</label>
+    <input type="text" id="al-gifUrl" placeholder="https://.../alert.gif" style="margin-bottom:12px;">
+
+    <div class="section-title">Tampilan overlay</div>
+    <div class="row">
+      <div>
+        <label class="small">Efek teks</label>
+        <select id="al-effect">
+          <option value="plain">Polos</option>
+          <option value="outline">Outline / stroke</option>
+          <option value="glow">Glow</option>
+        </select>
+      </div>
+      <div>
+        <label class="small">Warna teks</label>
+        <input type="color" id="al-textColor" value="#FFFFFF">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label class="small">Warna aksen</label>
+        <input type="color" id="al-accentColor" value="#39FF14">
+      </div>
+      <div>
+        <label class="small">Ukuran teks (px)</label>
+        <input type="number" id="al-fontSize" min="10" value="24">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label class="small">Animasi muncul</label>
+        <select id="al-animation">
+          <option value="slide">Slide dari atas</option>
+          <option value="pop">Pop tengah</option>
+          <option value="fade">Fade</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label class="small">Suara saat alert muncul</label>
+        <select id="al-soundEnabled">
+          <option value="1">Aktif</option>
+          <option value="0">Mati</option>
+        </select>
+      </div>
+      <div>
+        <label class="small">Volume (%)</label>
+        <input type="number" id="al-soundVolume" min="0" max="100" value="60">
+      </div>
+    </div>
+
+    <label class="small" style="margin-top:16px;">Contoh tampilan (live preview)</label>
+    <div class="preview-box" id="alPreviewBox">
+      <button class="btn ghost small" id="alPreviewBtn" type="button">▶ Coba animasinya</button>
+      <div class="alert-preview-stage">
+        <div class="alert-preview" id="alPreview">
+          <img id="alPreviewGif" style="display:none; max-width:100%; max-height:80px; border-radius:10px; margin-bottom:8px;">
+          <div><span id="alPreviewText">azzam ngirim Rose (5 coin)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="saveAlerts">Simpan</button>
+      <button class="btn ghost small" id="btnTestAlert">🧪 Test Alert</button>
+    </div>
+    <label class="small" style="margin-top:20px;">Link overlay Alert</label>
+    <div class="link-box" data-box="linkAlert">
+      <div class="mask-hint">👁 Klik untuk melihat link</div>
+      <input type="text" id="linkAlert" readonly>
+    </div>
+    <p class="warn-text">⚠ Jangan biarkan siapapun mengetahui atau melihat link overlay ini.</p>
+    <div class="link-actions">
+      <button class="btn ghost small" data-copy="linkAlert">Copy Link</button>
+      <button class="btn ghost small" data-open="linkAlert">Buka Tab Baru</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { db, sanitizeUsername } from "./firebase-config.js";
+  import { ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+  import { fmt, FREE_LIMIT_SECONDS } from "./tier-gate.js";
+
+  const params = new URLSearchParams(location.search);
+  const uname = sanitizeUsername(params.get("user") || localStorage.getItem("manzxsub_user") || "");
+  if (!uname) { window.location.href = "index.html"; }
+  document.getElementById("uname").textContent = uname;
+  localStorage.setItem("manzxsub_user", uname);
+  if (uname === "ferxmc7") {
+    document.getElementById("adminLink").innerHTML = ` · <a href="admin.html" style="color:var(--ink-dim);text-decoration:underline;">admin</a>`;
+  }
+
+  const base = location.href.replace(/dashboard\.html.*$/, "");
+  document.getElementById("linkTimer").value = `${base}overlay-timer.html?user=${uname}`;
+  document.getElementById("linkMilestone").value = `${base}overlay-milestone.html?user=${uname}`;
+  document.getElementById("linkAlert").value = `${base}overlay-alert.html?user=${uname}`;
+
+  document.getElementById("switchUser").addEventListener("click", (e) => {
+    e.preventDefault();
+    localStorage.removeItem("manzxsub_user");
+    window.location.href = "index.html";
+  });
+
+  // ---- Status akun (tier + sisa waktu) — cuma keliatan di dashboard, gak di overlay ----
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+  // ---- Peringatan anti-bajak, muncul berkala ----
+  function showAntiPiracyWarning(){
+    const t = document.getElementById("toast");
+    t.textContent = "⚠ Dilarang keras menjual/membagikan Aplikasi v2 Premium ke siapa pun. Pelanggar akan di-blacklist dari aplikasi.";
+    t.classList.add("show", "warn");
+    setTimeout(() => t.classList.remove("show", "warn"), 4500);
+  }
+  setTimeout(showAntiPiracyWarning, 8000);
+  setInterval(showAntiPiracyWarning, 45000);
+
+  onValue(ref(db, `users/${uname}`), (snap) => {
+    const d = snap.val() || {};
+    const tier = (d.profile && d.profile.tier) || "free";
+    const bar = document.getElementById("statusBar");
+    if (uname === "ferxmc7" || tier === "vip") {
+      bar.innerHTML = `<span>Status akun</span><span class="tier-tag vip">${uname === "ferxmc7" ? "OWNER" : "VIP"} · Gak dibatasi</span>`;
+    } else {
+      const usage = d.usage || {};
+      const used = usage.date === todayStr() ? (usage.seconds || 0) : 0;
+      const remain = Math.max(0, FREE_LIMIT_SECONDS - used);
+      bar.innerHTML = `<span>Status akun</span><span class="tier-tag">FREE · sisa ${fmt(remain)} hari ini</span>`;
+    }
+  });
+
+  // ---- Tabs ----
+  const tabs = document.querySelectorAll(".tabs button");
+  const thumb = document.getElementById("tabThumb");
+  tabs.forEach((btn, i) => {
+    btn.addEventListener("click", () => {
+      tabs.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      thumb.style.transform = `translateX(${i * 100}%)`;
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
+    });
+  });
+
+  // ---- Toast ----
+  function toast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 1800);
+  }
+
+  // ---- Link box: reveal / copy / open ----
+  document.querySelectorAll(".link-box").forEach(box => {
+    box.querySelector(".mask-hint").addEventListener("click", () => box.classList.add("revealed"));
+  });
+  document.querySelectorAll("[data-copy]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const inp = document.getElementById(btn.dataset.copy);
+      navigator.clipboard.writeText(inp.value);
+      toast("Link disalin!");
+    });
+  });
+  document.querySelectorAll("[data-open]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const inp = document.getElementById(btn.dataset.open);
+      window.open(inp.value, "_blank");
+    });
+  });
+
+  // ---- Load data ----
+  const userRef = ref(db, `users/${uname}`);
+  const snap = await get(userRef);
+  const data = snap.val() || {};
+
+  // Font Utama (global, dipakai semua overlay)
+  document.getElementById("globalFont").value = data.globalFont || "Sora";
+  document.getElementById("globalFont").addEventListener("change", async () => {
+    await update(ref(db, `users/${uname}`), { globalFont: document.getElementById("globalFont").value });
+    toast("Font utama disimpan!");
+    updateTimerPreview(); updateMsPreview(); updateAlPreview();
+  });
+
+  // Timer
+  const t = data.timer || { minutesPerCoin: 3, maxCoins: 30 };
+  document.getElementById("minutesPerCoin").value = t.minutesPerCoin;
+  document.getElementById("maxCoins").value = t.maxCoins;
+  document.getElementById("tm-soundEnabled").value = (t.soundEnabled === false) ? "0" : "1";
+  document.getElementById("tm-soundVolume").value = t.soundVolume != null ? t.soundVolume : 60;
+  document.getElementById("tm-initialMinutes").value = t.initialMinutes != null ? t.initialMinutes : 120;
+  const ts = t.style || { effect:"glow", textColor:"#39FF14", fontSize:52, labelText:"Waktu Tersisa" };
+  document.getElementById("tm-effect").value = ts.effect;
+  document.getElementById("tm-textColor").value = ts.textColor;
+  document.getElementById("tm-fontSize").value = ts.fontSize;
+  document.getElementById("tm-labelText").value = ts.labelText;
+  updateTimerPreview();
+
+  function renderTimerRunStatus(running, pausedSec){
+    if (running) {
+      document.getElementById("timerRunStatus").textContent = "🟢 Timer lagi jalan";
+    } else if (pausedSec != null) {
+      const h = String(Math.floor(pausedSec/3600)).padStart(2,"0");
+      const m = String(Math.floor((pausedSec%3600)/60)).padStart(2,"0");
+      const s = String(pausedSec%60).padStart(2,"0");
+      document.getElementById("timerRunStatus").textContent = `⏸ Berhenti di ${h}:${m}:${s}`;
+    } else {
+      document.getElementById("timerRunStatus").textContent = "⏸ Belum dimulai — set durasi awal terus pencet Mulai";
+    }
+  }
+  renderTimerRunStatus(!!t.isRunning, t.pausedSeconds);
+
+  document.getElementById("saveTimer").addEventListener("click", async () => {
+    await update(ref(db, `users/${uname}/timer`), {
+      minutesPerCoin: Number(document.getElementById("minutesPerCoin").value) || 3,
+      maxCoins: Number(document.getElementById("maxCoins").value) || 30,
+      soundEnabled: document.getElementById("tm-soundEnabled").value === "1",
+      soundVolume: Number(document.getElementById("tm-soundVolume").value) || 60,
+      style: {
+        effect: document.getElementById("tm-effect").value,
+        textColor: document.getElementById("tm-textColor").value,
+        fontSize: Number(document.getElementById("tm-fontSize").value) || 52,
+        labelText: document.getElementById("tm-labelText").value || "Waktu Tersisa"
+      }
+    });
+    toast("Timer disimpan!");
+  });
+
+  document.getElementById("btnStartTimer").addEventListener("click", async () => {
+    const initMin = Number(document.getElementById("tm-initialMinutes").value) || 0;
+    await update(ref(db, `users/${uname}/timer`), {
+      initialMinutes: initMin,
+      timerEnd: Date.now() + initMin * 60 * 1000,
+      timerCoins: 0,
+      isRunning: true
+    });
+    renderTimerRunStatus(true);
+    toast(`Timer dimulai dari ${initMin} menit!`);
+  });
+
+  document.getElementById("btnStopTimer").addEventListener("click", async () => {
+    const snapT = await get(ref(db, `users/${uname}/timer`));
+    const v = snapT.val() || {};
+    const remainSec = Math.max(0, Math.floor(((v.timerEnd || 0) - Date.now()) / 1000));
+    await update(ref(db, `users/${uname}/timer`), {
+      isRunning: false,
+      pausedSeconds: remainSec
+    });
+    renderTimerRunStatus(false, remainSec);
+    toast("Timer di-stop, dibekukan di posisi sekarang.");
+  });
+
+  document.getElementById("btnResetTimer").addEventListener("click", async () => {
+    const initMin = Number(document.getElementById("tm-initialMinutes").value) || 0;
+    await update(ref(db, `users/${uname}/timer`), {
+      isRunning: false,
+      pausedSeconds: initMin * 60,
+      timerCoins: 0
+    });
+    renderTimerRunStatus(false, initMin * 60);
+    toast("Timer direset ke durasi awal.");
+  });
+
+  document.getElementById("btnTestCoin").addEventListener("click", async () => {
+    const snap2 = await get(ref(db, `users/${uname}/timer`));
+    const v = snap2.val() || {};
+    const newCoins = Math.min((v.timerCoins || 0) + 1, v.maxCoins || 30);
+    const addedMinutes = Math.max(0, newCoins - (v.timerCoins || 0)) * (v.minutesPerCoin || 3);
+    const base = Math.max(v.timerEnd || 0, Date.now());
+    await update(ref(db, `users/${uname}/timer`), {
+      timerCoins: newCoins,
+      timerEnd: base + addedMinutes * 60 * 1000,
+      totalCoins: (v.totalCoins || 0) + 1,
+      isRunning: true
+    });
+    toast("Test +1 coin terkirim ke overlay!");
+  });
+
+  // Goals
+  const goalList = document.getElementById("goalList");
+  function renderGoalRow(g = { threshold: "", label: "" }){
+    const row = document.createElement("div");
+    row.className = "goal-row";
+    row.innerHTML = `
+      <input type="number" class="g-threshold" placeholder="coin" value="${g.threshold}">
+      <input type="text" class="g-label" placeholder="nama goal" value="${g.label}">
+      <button class="del">✕</button>`;
+    row.querySelector(".del").addEventListener("click", () => row.remove());
+    goalList.appendChild(row);
+  }
+  (data.goals || []).forEach(renderGoalRow);
+  document.getElementById("addGoal").addEventListener("click", () => renderGoalRow());
+
+  const ms = data.milestoneStyle || { effect:"plain", textColor:"#39FF14", barColor:"#FFE600", fontSize:28, labelText:"Goal Berikutnya", soundEnabled:true, soundVolume:60 };
+  document.getElementById("ms-effect").value = ms.effect;
+  document.getElementById("ms-textColor").value = ms.textColor;
+  document.getElementById("ms-barColor").value = ms.barColor;
+  document.getElementById("ms-fontSize").value = ms.fontSize;
+  document.getElementById("ms-labelText").value = ms.labelText || "Goal Berikutnya";
+  document.getElementById("ms-soundEnabled").value = (ms.soundEnabled === false) ? "0" : "1";
+  document.getElementById("ms-soundVolume").value = ms.soundVolume != null ? ms.soundVolume : 60;
+
+  document.getElementById("saveGoals").addEventListener("click", async () => {
+    const goals = [...goalList.querySelectorAll(".goal-row")].map(r => ({
+      threshold: Number(r.querySelector(".g-threshold").value) || 0,
+      label: r.querySelector(".g-label").value || "Goal"
+    })).sort((a,b) => a.threshold - b.threshold);
+    await update(ref(db, `users/${uname}`), {
+      goals,
+      milestoneStyle: {
+        effect: document.getElementById("ms-effect").value,
+        textColor: document.getElementById("ms-textColor").value,
+        barColor: document.getElementById("ms-barColor").value,
+        fontSize: Number(document.getElementById("ms-fontSize").value) || 28,
+        labelText: document.getElementById("ms-labelText").value || "Goal Berikutnya",
+        soundEnabled: document.getElementById("ms-soundEnabled").value === "1",
+        soundVolume: Number(document.getElementById("ms-soundVolume").value) || 60
+      }
+    });
+    toast("Milestone disimpan!");
+    updateMsPreview();
+  });
+
+  document.getElementById("btnTestMilestone").addEventListener("click", async () => {
+    const snap3 = await get(ref(db, `users/${uname}/timer`));
+    const v = snap3.val() || {};
+    await update(ref(db, `users/${uname}/timer`), { totalCoins: (v.totalCoins || 0) + 10 });
+    toast("Test +10 coin terkirim ke overlay!");
+  });
+
+  function updateMsPreview(){
+    const goalText = document.getElementById("msPreviewText");
+    const fill = document.getElementById("msPreviewFill");
+    const gf = document.getElementById("globalFont").value;
+    goalText.style.fontFamily = gf;
+    goalText.style.fontSize = document.getElementById("ms-fontSize").value + "px";
+    goalText.style.color = document.getElementById("ms-textColor").value;
+    goalText.className = "preview-goal effect-" + document.getElementById("ms-effect").value;
+    fill.style.background = document.getElementById("ms-barColor").value;
+    document.getElementById("msPreviewLabel").textContent = document.getElementById("ms-labelText").value || "Goal Berikutnya";
+  }
+  ["ms-effect","ms-textColor","ms-barColor","ms-fontSize","ms-labelText"].forEach(id => {
+    document.getElementById(id).addEventListener("input", updateMsPreview);
+  });
+  updateMsPreview();
+
+  // Alerts
+  const a = data.alerts || { defaultMessage: "{user} ngirim {gift} ({coins} coin)", defaultDuration: 4, perCoin: {} };
+  document.getElementById("defaultMessage").value = a.defaultMessage;
+  document.getElementById("defaultDuration").value = a.defaultDuration;
+  const alertList = document.getElementById("alertList");
+  function renderAlertRow(coins = "", message = ""){
+    const row = document.createElement("div");
+    row.className = "alert-row";
+    row.innerHTML = `
+      <input type="number" class="a-coins" placeholder="coin" value="${coins}">
+      <input type="text" class="a-message" placeholder="pesan khusus, mis: {user} kasih combo gila!" value="${message}">
+      <button class="del">✕</button>`;
+    row.querySelector(".del").addEventListener("click", () => row.remove());
+    alertList.appendChild(row);
+  }
+  Object.entries(a.perCoin || {}).forEach(([coins, message]) => renderAlertRow(coins, message));
+  document.getElementById("addAlert").addEventListener("click", () => renderAlertRow());
+
+  const als = data.alertStyle || { effect:"glow", textColor:"#FFFFFF", accentColor:"#39FF14", fontSize:24, animation:"slide", soundEnabled:true, soundVolume:60 };
+  document.getElementById("al-effect").value = als.effect;
+  document.getElementById("al-textColor").value = als.textColor;
+  document.getElementById("al-accentColor").value = als.accentColor;
+  document.getElementById("al-fontSize").value = als.fontSize;
+  document.getElementById("al-animation").value = als.animation;
+  document.getElementById("al-soundEnabled").value = (als.soundEnabled === false) ? "0" : "1";
+  document.getElementById("al-soundVolume").value = als.soundVolume != null ? als.soundVolume : 60;
+  document.getElementById("al-gifUrl").value = (data.alerts && data.alerts.gifUrl) || "";
+
+  document.getElementById("saveAlerts").addEventListener("click", async () => {
+    const perCoin = {};
+    [...alertList.querySelectorAll(".alert-row")].forEach(r => {
+      const c = r.querySelector(".a-coins").value;
+      const m = r.querySelector(".a-message").value;
+      if (c && m) perCoin[c] = m;
+    });
+    await update(ref(db, `users/${uname}`), {
+      alerts: {
+        defaultMessage: document.getElementById("defaultMessage").value || "{user} ngirim {gift} ({coins} coin)",
+        defaultDuration: Number(document.getElementById("defaultDuration").value) || 4,
+        gifUrl: document.getElementById("al-gifUrl").value.trim(),
+        perCoin
+      },
+      alertStyle: {
+        effect: document.getElementById("al-effect").value,
+        textColor: document.getElementById("al-textColor").value,
+        accentColor: document.getElementById("al-accentColor").value,
+        fontSize: Number(document.getElementById("al-fontSize").value) || 24,
+        animation: document.getElementById("al-animation").value,
+        soundEnabled: document.getElementById("al-soundEnabled").value === "1",
+        soundVolume: Number(document.getElementById("al-soundVolume").value) || 60
+      }
+    });
+    toast("Alert disimpan!");
+    updateAlPreview();
+  });
+
+  document.getElementById("btnTestAlert").addEventListener("click", async () => {
+    await update(ref(db, `users/${uname}`), {
+      lastGift: { name: "Tester", gift: "Rose", coins: 5, ts: Date.now() }
+    });
+    toast("Test alert terkirim ke overlay!");
+  });
+
+  function updateAlPreview(){
+    const el = document.getElementById("alPreviewText");
+    const gf = document.getElementById("globalFont").value;
+    el.style.fontFamily = gf;
+    el.style.fontSize = document.getElementById("al-fontSize").value + "px";
+    el.style.color = document.getElementById("al-textColor").value;
+    el.className = "effect-" + document.getElementById("al-effect").value;
+    document.getElementById("alPreview").style.color = document.getElementById("al-accentColor").value;
+    const gifEl = document.getElementById("alPreviewGif");
+    const gifUrl = document.getElementById("al-gifUrl").value.trim();
+    if (gifUrl) { gifEl.src = gifUrl; gifEl.style.display = "block"; }
+    else { gifEl.style.display = "none"; }
+  }
+  function playAlPreview(){
+    const box = document.getElementById("alPreview");
+    const anim = document.getElementById("al-animation").value;
+    box.classList.remove("anim-slide","anim-pop","anim-fade");
+    void box.offsetWidth;
+    box.classList.add("anim-" + anim);
+  }
+  ["al-effect","al-textColor","al-accentColor","al-fontSize","al-gifUrl"].forEach(id => {
+    document.getElementById(id).addEventListener("input", updateAlPreview);
+  });
+  document.getElementById("al-animation").addEventListener("change", playAlPreview);
+  document.getElementById("alPreviewBtn").addEventListener("click", playAlPreview);
+  updateAlPreview();
+  playAlPreview();
+  // ---- Suara sintetis (gak perlu file audio) ----
+  let audioCtx;
+  function getCtx(){
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+  function tone(ctx, freq, start, dur, gain, type = "sine"){
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    osc.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(gain, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    osc.start(start); osc.stop(start + dur);
+  }
+  function playTimerSound(vol = 0.6){
+    const ctx = getCtx(); const t = ctx.currentTime;
+    tone(ctx, 880, t, 0.09, vol * 0.5, "triangle");
+    tone(ctx, 1318, t + 0.07, 0.12, vol * 0.5, "triangle");
+  }
+  function playMilestoneSound(vol = 0.6){
+    const ctx = getCtx(); const t = ctx.currentTime;
+    [392, 494, 587, 784].forEach((f, i) => tone(ctx, f, t + i * 0.09, 0.18, vol * 0.5, "sine"));
+  }
+  function playAlertSound(vol = 0.6){
+    const ctx = getCtx(); const t = ctx.currentTime;
+    [523, 659, 784].forEach((f, i) => tone(ctx, f, t + i * 0.08, 0.15, vol * 0.55, "triangle"));
+  }
+  document.getElementById("tmPreviewSound").addEventListener("click", () => playTimerSound((Number(document.getElementById("tm-soundVolume").value)||60)/100));
+  document.getElementById("msPreviewSound").addEventListener("click", () => playMilestoneSound((Number(document.getElementById("ms-soundVolume").value)||60)/100));
+  document.getElementById("alPreviewBtn").addEventListener("click", () => playAlertSound((Number(document.getElementById("al-soundVolume").value)||60)/100));
+
+  // ---- Preview digital clock buat Timer ----
+  function updateTimerPreview(){
+    const mpc = Number(document.getElementById("minutesPerCoin").value) || 3;
+    const mc = Number(document.getElementById("maxCoins").value) || 30;
+    const clock = document.getElementById("tmPreviewClock");
+    clock.style.fontFamily = document.getElementById("globalFont").value;
+    clock.style.fontSize = document.getElementById("tm-fontSize").value + "px";
+    clock.style.color = document.getElementById("tm-textColor").value;
+    clock.className = "effect-" + document.getElementById("tm-effect").value;
+    document.getElementById("tmPreviewLabel").textContent = document.getElementById("tm-labelText").value || "Waktu Tersisa";
+    const totalMin = mpc * mc;
+    const hh = String(Math.floor(totalMin/60)).padStart(2,"0");
+    const mm = String(totalMin%60).padStart(2,"0");
+    clock.textContent = `${hh}:${mm}:00`;
+    document.getElementById("tmPreviewInfo").textContent = `Contoh kalau full ${mc} coin masuk → total maksimal timer segitu`;
+  }
+  ["minutesPerCoin","maxCoins","tm-effect","tm-textColor","tm-fontSize","tm-labelText"].forEach(id => {
+    document.getElementById(id).addEventListener("input", updateTimerPreview);
+  });
+  updateTimerPreview();
+</script>
+</body>
+</html>
